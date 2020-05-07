@@ -2,6 +2,7 @@ from os.path import dirname, realpath
 from ast import literal_eval
 from manga import Manga
 import yaml
+import subprocess
 
 # Domain of sites for downloads:
 DOMAIN = {'GOYABU': 'mangayabu.com'}
@@ -17,7 +18,7 @@ Example: tower-of-god-season-1 - Name manga for download""",
         1: """
 In config_download.json:
 Parameter: <manga_chapters> error defined
-Example: (1, 3) - Chapters manga 1 to 3 for download""",
+Example: (1,3) - Chapters manga 1 to 3 for download""",
         2: """
 In config_download.json:
 Parameter: <manga_domain> is empty
@@ -64,4 +65,5 @@ def main():
 
 
 if __name__ == '__main__':
+    subprocess.call("pip install -r requirements.txt", shell=True)
     main()
