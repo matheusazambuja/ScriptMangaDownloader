@@ -16,5 +16,5 @@ Note: Standart directory is folder script. (If argument <manga_path> if empty)
 Note: Argument <manga_name> exactly like the url of the manga pages (Later updates changed that)
 #### Example: manga_name: one-punch-man
 Note: Argument <manga_chapters> represent chapters interval. (no spaces between numbers)
-#### Example: (1, 3) manga chapters 1 to 3 will be download.
+#### Example: (1,3) manga chapters 1 to 3 will be download.
 Note: Argument <manga_domain> is site of the download mangas.
