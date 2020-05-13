@@ -1,39 +1,112 @@
 import requests
 import os
 import errno
+import re
+from bs4 import BeautifulSoup
+
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+
+# Domain of sites for downloads:
+DOMAIN = {'MANGAHOST': 'mangahost.site'}
+
+
+def request(endpoint, name, direct_link):
+    if direct_link == '':
+        url = 'https://{}/'.format(DOMAIN['MANGAHOST']) + \
+            endpoint + name.replace(' ', '+')
+        # r = requests.get(url, headers=HEADERS)
+    elif direct_link != '':
+        url = direct_link
+    try:
+        r = requests.get(url, headers=HEADERS)
+        return r
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return None
+
+
+class MangaDownload:
+    def __init__(self, name):
+        self.name = name
+        self.link = ''
+        self.select_manga()
+
+    def find_manga_html(self):
+        b_html = request('find/', self.name, '')
+        if b_html is not None:
+            mangas = []
+            bs = BeautifulSoup(b_html.content, "lxml")
+            for tag in bs.find_all('h3', class_='entry-title'):
+                tag = tag.find('a')
+                tag = str(tag).replace('"', "'")
+                link = re.findall(r"(?<=<a href=')[^']*", str(tag))
+                name = re.findall(r"(?<=title=')[^']*", str(tag))
+                mangas.append([name[0], link[0]])
+            return mangas
+        else:
+            return None
+
+    def select_manga(self):
+        mangas = self.find_manga_html()
+        print(f'Found mangas:')
+        for manga in mangas:
+            print(f'{mangas.index(manga)}: {manga[0]}')
+        code_manga = 'a'
+        while not code_manga.isdigit() \
+                or int(code_manga) not in range(len(mangas)):
+            code_manga = input(f'Select a manga: ')
+        self.name = mangas[int(code_manga)][0]
+        self.link = mangas[int(code_manga)][1]
 
 
 class Manga:
-    def __init__(self, name, chapters, domain, path):
+    def __init__(self, name, link, chapters, path):
         self.name = name
-        self.chapters = []
-        self._create_chapters(chapters, path, domain)
+        self.link = link
+        self.chapters = chapters
         self.path = path
-        self.domain = domain
 
-    def _create_chapters(self, chapters, path, domain):
-        for i in range(chapters[0], chapters[-1]+1):
-            if i in range(0, 10):
-                self.chapters.append(Chapter(self.name, chr(
-                    ord('0')) + str(i), path, domain))
-            else:
-                self.chapters.append(
-                    Chapter(self.name, str(i), path, domain))
+    def find_chapters_html(self):
+        b_html = request('', '', self.link)
+        if b_html:
+            chapters = []
+            soup = BeautifulSoup(b_html.content, "lxml")
+
+            var = re.findall(r'mh\d+', b_html.url)
+            print(b_html.url, var)
+            regex = r"\bhref=['\"](\S+" + re.escape(var[0]) + r"\S+)\b"
+            chapters = re.findall(regex, str(soup))
+
+            print(chapters)
+            chapters_return = []
+            chapters.reverse()
+            for chap in chapters:
+                print(chap)
+                s = re.findall(r'/\w+', chap)[-1]
+                if int(s[1::]) in range(
+                        self.chapters[0], self.chapters[-1] + 1):
+                    chapters_return.append([int(s[1::]), chap])
+            return chapters_return
+        else:
+            # print(f'Nenhum resultado encontrado para "{self.name}".')
+            return None
 
     def download_chapters(self):
-        for chapter in self.chapters:
-            chapter.download_pages()
+        chapters_num = self.find_chapters_html()
+        for chapter in chapters_num:
+            Chapter(self.name, chapter[0], chapter[1],
+                    self.path).download_pages()
 
 
 class Chapter():
-    def __init__(self, name, number, path, domain):
+    def __init__(self, name, number, link, path):
         self.name = name
         self.number = number
-        self.links_pages = []
+        self.link = link
         self.path = path
-        self.domain = domain
 
-    def _set_dir_pages(self, number_page):
+    def save_page(self, number_page, bin_image):
         manga_dir = self.path + '\\' + self.name + '\\' + \
             str(self.number) + '\\' + str(number_page) + '.jpg'
 
@@ -43,59 +116,47 @@ class Chapter():
             except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
-        return manga_dir
+        with open(manga_dir, 'wb') as image:
+            image.write(bin_image)
 
-    def _next_page(self, old_page):
-        if int(old_page) != 0:
-            if old_page[-1] == '9':
-                page = int(old_page) + 1
-                new_page = str(page)
-            else:
-                new_page = old_page[0] + chr(ord(old_page[-1]) + 1)
+    def find_pages_html(self):
+        b_html = request('', '', self.link)
+        if b_html is not None:
+            pages = []
+            soup = BeautifulSoup(b_html.conten, "lxml")
+            for tag in soup.find_all('script'):
+                pages = re.findall(r"\bsrc='(\w+://\S*)\b", str(tag))
+                if pages:
+                    return pages
+            print(f'Pages not found')
+            return None
         else:
-            new_page = old_page[0] + chr(ord(old_page[-1]) + 1)
-        return ['https://' + self.domain +
-                '/mangas/' + self.name + '/capitulo-' +
-                str(self.number) + '/' + new_page + '.jpg', new_page]
-
-    def _url_standart_create(self):
-        page = '00'
-        url = 'https://' + self.domain + '/mangas/' + self.name + \
-            '/capitulo-' + str(self.number) + '/' + page + '.jpg'
-        r = requests.get(url)
-        if r.url == 'https://mangayabu.com/?error=404':
-            return['https://' + self.domain + '/mangas/' + self.name +
-                   '/capitulo-' + str(self.number) + '/01.jpg', '01']
-        return [url, page]
-
-    def get_links_pages(self):
-        [url, page] = self._url_standart_create()
-        r = requests.get(url)
-
-        print(f'Getting pages links of manga:')
-        while r.url != 'https://mangayabu.com/?error=404':
-            self.links_pages.append(r.url)
-            # old_page = new_page
-            # print(page, len(self.links_pages))
-            print(f'Page link: {url}')
-            [url, page] = self._next_page(page)
-            r = requests.get(url)
-        print(f'Getting completed')
-        print(f'Total links: {len(self.links_pages)}')
+            return None
 
     def download_pages(self):
-        print(f'Manga: {self.name}')
-        print(f'Chapter: {self.number}')
-        self.get_links_pages()
+        print('-----------------------------------------------')
+        print(f'{self.name} - Chapter: {self.number}')
+        links_pages = self.find_pages_html()
+        index = 1
+        if links_pages:
+            print('Download started')
+            for link in links_pages:
+                r = requests.get(link, headers=HEADERS)
+                if r.status_code == 404:
+                    print('HTTP Error')
+                    break
+                self.save_page(index, r.content)
+                index += 1
+            print('Download completed')
+            print(f'Total pages download: {index}')
+            print('-----------------------------------------------')
+        else:
+            print(f'Pages not found')
+            print('-----------------------------------------------')
 
-        print('Download started')
-        for i_page, page in enumerate(self.links_pages):
-            r = requests.get(page)
 
-            manga_dir = self._set_dir_pages(i_page)
-
-            with open(manga_dir, 'wb') as image:
-                image.write(r.content)
-            r = requests.get(page)
-        print('Download completed')
-        print(f'Total pages download: {len(self.links_pages)}')
+def run_script(name, chapters, path):
+    manga = MangaDownload(name)
+    # print(manga.name, manga.link)
+    MangaRight = Manga(manga.name, manga.link, chapters, path)
+    MangaRight.download_chapters()
