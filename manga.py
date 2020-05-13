@@ -2,29 +2,12 @@ import requests
 import os
 import errno
 import re
+import utils
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-
-# Domain of sites for downloads:
-DOMAIN = {'MANGAHOST': 'mangahost.site'}
-
-
-def request(endpoint, name, direct_link):
-    if direct_link == '':
-        url = 'https://{}/'.format(DOMAIN['MANGAHOST']) + \
-            endpoint + name.replace(' ', '+')
-        # r = requests.get(url, headers=HEADERS)
-    elif direct_link != '':
-        url = direct_link
-    try:
-        r = requests.get(url, headers=HEADERS)
-        return r
-    except requests.exceptions.RequestException as e:
-        print(e)
-        return None
 
 
 class MangaDownload:
@@ -34,7 +17,7 @@ class MangaDownload:
         self.select_manga()
 
     def find_manga_html(self):
-        b_html = request('find/', self.name, '')
+        b_html = utils.request('find/', self.name, '')
         if b_html is not None:
             mangas = []
             bs = BeautifulSoup(b_html.content, "lxml")
@@ -69,19 +52,17 @@ class Manga:
         self.path = path
 
     def find_chapters_html(self):
-        b_html = request('', '', self.link)
+        b_html = utils.request('', '', self.link)
         if b_html:
             links_chapters = []
             soup = BeautifulSoup(b_html.content, "lxml")
 
             id_manga = re.search(r'mh\d+', b_html.url)
-            # print(b_html.url, id_manga.group(0))
             regex_links_chapters = r"\bhref=['\"](\S+" + \
                 re.escape(id_manga.group(0)) + r"\S+)\b"
             links_chapters = re.findall(regex_links_chapters, str(soup))
             links_chapters = list(OrderedDict.fromkeys(links_chapters))
 
-            # print(links_chapters)
             chapters_return = []
             links_chapters.reverse()
             find_first_manga = False
@@ -131,7 +112,7 @@ class Chapter():
             image.write(bin_image)
 
     def find_pages_html(self):
-        b_html = request('', '', self.link)
+        b_html = utils.request('', '', self.link)
         if b_html is not None:
             pages = []
             soup = BeautifulSoup(b_html.content, "lxml")
@@ -171,6 +152,5 @@ class Chapter():
 
 def run_script(name, chapters, path):
     manga = MangaDownload(name)
-    # print(manga.name, manga.link)
     MangaRight = Manga(manga.name, manga.link, chapters, path)
     MangaRight.download_chapters()
