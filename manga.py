@@ -3,6 +3,7 @@ import os
 import errno
 import re
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
@@ -70,23 +71,33 @@ class Manga:
     def find_chapters_html(self):
         b_html = request('', '', self.link)
         if b_html:
-            chapters = []
+            links_chapters = []
             soup = BeautifulSoup(b_html.content, "lxml")
 
-            var = re.findall(r'mh\d+', b_html.url)
-            print(b_html.url, var)
-            regex = r"\bhref=['\"](\S+" + re.escape(var[0]) + r"\S+)\b"
-            chapters = re.findall(regex, str(soup))
+            id_manga = re.search(r'mh\d+', b_html.url)
+            # print(b_html.url, id_manga.group(0))
+            regex_links_chapters = r"\bhref=['\"](\S+" + \
+                re.escape(id_manga.group(0)) + r"\S+)\b"
+            links_chapters = re.findall(regex_links_chapters, str(soup))
+            links_chapters = list(OrderedDict.fromkeys(links_chapters))
 
-            print(chapters)
+            # print(links_chapters)
             chapters_return = []
-            chapters.reverse()
-            for chap in chapters:
-                print(chap)
-                s = re.findall(r'/\w+', chap)[-1]
-                if int(s[1::]) in range(
-                        self.chapters[0], self.chapters[-1] + 1):
-                    chapters_return.append([int(s[1::]), chap])
+            links_chapters.reverse()
+            find_first_manga = False
+            for link in links_chapters:
+                print(link)
+                regex_id_chapter = re.escape(
+                    id_manga.group(0)) + r'/(\w+(.\w+)?)'
+                id_chapter = re.search(regex_id_chapter, link)
+                id_chapter = re.sub(
+                    re.escape(id_manga.group(0)) + r'/', '', id_chapter.group(0))
+                if id_chapter.isdigit() and id_chapter == str(self.chapters[0]):
+                    find_first_manga = True
+                if find_first_manga:
+                    chapters_return.append([id_chapter, link])
+                    if id_chapter.isdigit() and id_chapter == str(self.chapters[1]):
+                        break
             return chapters_return
         else:
             # print(f'Nenhum resultado encontrado para "{self.name}".')
@@ -123,9 +134,12 @@ class Chapter():
         b_html = request('', '', self.link)
         if b_html is not None:
             pages = []
-            soup = BeautifulSoup(b_html.conten, "lxml")
+            soup = BeautifulSoup(b_html.content, "lxml")
             for tag in soup.find_all('script'):
                 pages = re.findall(r"\bsrc='(\w+://\S*)\b", str(tag))
+                for page in pages:
+                    if ' ' in pages:
+                        page = page.replace(' ', '%20')
                 if pages:
                     return pages
             print(f'Pages not found')
@@ -144,7 +158,7 @@ class Chapter():
                 r = requests.get(link, headers=HEADERS)
                 if r.status_code == 404:
                     print('HTTP Error')
-                    break
+                    # break
                 self.save_page(index, r.content)
                 index += 1
             print('Download completed')
