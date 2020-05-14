@@ -1,12 +1,11 @@
+import yaml
+import utils
 from os.path import dirname, realpath
 from ast import literal_eval
 from manga import run_script
-import yaml
-import utils
 
 
 def main():
-    config = {}
     with open('config_download.yaml', 'r') as yaml_file:
         try:
             config = yaml.safe_load(yaml_file)
@@ -24,11 +23,10 @@ def main():
         print(utils.help(2))
         input("Press Enter to continue...")
         config['manga_path'] = dirname(realpath(__file__))
-        run_script(config['manga_name'], literal_eval(
-            config['manga_chapters']), config['manga_path'])
-    else:
-        run_script(config['manga_name'], literal_eval(
-            config['manga_chapters']), config['manga_path'])
+
+    run_script(config['manga_name'], literal_eval(
+        config['manga_chapters']), config['manga_path'],
+                config['manga_domain'])
 
 
 if __name__ == '__main__':

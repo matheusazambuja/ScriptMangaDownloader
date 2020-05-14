@@ -2,25 +2,15 @@ import requests
 from os.path import dirname, realpath
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
-
-# Domain of sites for downloads:
-DOMAIN = {'MANGAHOST': 'mangahost.site'}
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1)' +
+    'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
 
-def request(endpoint, name, direct_link):
-    if direct_link == '':
-        url = 'https://{}/'.format(DOMAIN['MANGAHOST']) + \
-            endpoint + name.replace(' ', '+')
-        # r = requests.get(url, headers=HEADERS)
-    elif direct_link != '':
-        url = direct_link
+def request(link):
     try:
-        r = requests.get(url, headers=HEADERS)
-        return r
+        return requests.get(link, headers=HEADERS)
     except requests.exceptions.RequestException as e:
         print(e)
-        return None
 
 
 def help(code):
