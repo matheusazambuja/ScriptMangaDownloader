@@ -16,7 +16,7 @@ class MangaDownload:
         mangas = []
         b_html = utils.request('https://mangahost.site/find/' +
                                self.name.replace(' ', '+'))
-        soup = BeautifulSoup(b_html.content, 'lxml')
+        soup = BeautifulSoup(b_html.content, 'html.parser')
         for tag in soup.find_all('h3', class_='entry-title'):
             tag = tag.find('a')
             tag = str(tag).replace('"', "'")
@@ -48,7 +48,7 @@ class Manga:
     def find_chapters_html(self):
         links_chapters = []
         b_html = utils.request(self.link)
-        soup = BeautifulSoup(b_html.content, 'lxml')
+        soup = BeautifulSoup(b_html.content, 'html.parser')
 
         id_manga = re.search(r'mh\d+', b_html.url)
         regex_links_chapters = r"\bhref=['\"](\S+" + \
@@ -81,15 +81,15 @@ class Manga:
 
 
 class Chapter():
-    def __init__(self, name, number, link, path):
+    def __init__(self, name, id_chapter, link, path):
         self.name = name
-        self.number = number
+        self.id_chapter = id_chapter
         self.link = link
         self.path = path
 
     def save_page(self, number_page, bin_image):
         manga_dir = self.path + '\\' + self.name + '\\' + \
-            str(self.number) + '\\' + str(number_page) + '.jpg'
+            str(self.id_chapter) + '\\' + str(number_page) + '.webp'
 
         if not os.path.exists(os.path.dirname(manga_dir)):
             try:
@@ -97,30 +97,29 @@ class Chapter():
             except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
-        with open(manga_dir, 'wb') as image:
-            image.write(bin_image)
+        utils.converting_image(bin_image, manga_dir)
 
     def find_pages_html(self):
         pages = []
         b_html = utils.request(self.link)
-        soup = BeautifulSoup(b_html.content, 'lxml')
+        soup = BeautifulSoup(b_html.content, 'html.parser')
+        regex_pages = r"\bsrc='(\w+://[\w.%+-/ ]+)"
         for tag in soup.find_all('script'):
-            pages = re.findall(r"\bsrc='(\w+://\S*)\b", str(tag))
-            for page in pages:
-                if ' ' in page:
-                    page = page.replace(' ', '%20')
+            pages = re.findall(regex_pages, str(tag))
             if pages:
                 return pages
 
     def download_pages(self):
         print('-----------------------------------------------')
-        print(f'{self.name} - Chapter: {self.number}')
+        print(f'{self.name} - Chapter: {self.id_chapter}')
         links_pages = self.find_pages_html()
         total_pages_download = 1
         if links_pages:
+            print(links_pages)
             print('Download started')
             for link in links_pages:
                 r = utils.request(link)
+                print(link)
                 self.save_page(total_pages_download, r.content)
                 total_pages_download += 1
             print('Download completed')
