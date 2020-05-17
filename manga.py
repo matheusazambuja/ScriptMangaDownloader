@@ -27,6 +27,9 @@ class MangaDownload:
 
     def _select_manga(self):
         mangas = self.find_manga_html()
+        print('-----------------------------------------------')
+        print('Enter 0 to end execution.')
+        print('-----------------------------------------------')
         print(f'Found mangas:')
         for manga in mangas:
             print(f'{mangas.index(manga)+1}: {manga[0]}')
@@ -34,6 +37,8 @@ class MangaDownload:
         while not code_manga.isdigit() \
                 or int(code_manga)-1 not in range(len(mangas)):
             code_manga = input(f'Select a manga: ')
+            if code_manga == '0':
+                exit(0)
         self.name = mangas[int(code_manga)-1][0]
         self.link = mangas[int(code_manga)-1][1]
 
@@ -115,11 +120,9 @@ class Chapter():
         links_pages = self.find_pages_html()
         total_pages_download = 1
         if links_pages:
-            print(links_pages)
             print('Download started')
             for link in links_pages:
                 r = utils.request(link)
-                print(link)
                 self.save_page(total_pages_download, r.content)
                 total_pages_download += 1
             print('Download completed')
