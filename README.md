@@ -16,3 +16,4 @@ Note: Standart directory is folder script. (If argument '<manga_path>' is empty)
 Note: Argument <manga_chapters> represent chapters interval. (no spaces between numbers)
 #### If special or extra chapters within the range, will be downloaded
 #### Example: (1,3) chapters 1 to 3 will be download.
+#### Example: enter 'all' in <manga_chapters> to download for all chapters manga

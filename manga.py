@@ -63,7 +63,10 @@ class Manga:
 
         chapters_return = []
         links_chapters.reverse()
-        find_first_manga = False
+        if self.chapters == (-1, -1):
+            find_first_manga = True
+        else:
+            find_first_manga = False
         for link in links_chapters:
             regex_id_chapter = re.escape(
                 id_manga.group(0)) + r'/(\w+(.\w+)?)'
@@ -81,6 +84,7 @@ class Manga:
     def download_chapters(self):
         chapters_num = self.find_chapters_html()
         for chapter in chapters_num:
+            print(chapter[0], chapter[1])
             Chapter(self.name, chapter[0], chapter[1],
                     self.path).download_pages()
 
@@ -131,9 +135,3 @@ class Chapter():
         else:
             print(f'Pages not found')
             print('-----------------------------------------------')
-
-
-def run_script(name, chapters, path, domain):
-    manga = MangaDownload(name)
-    MangaRight = Manga(manga.name, manga.link, chapters, path)
-    MangaRight.download_chapters()
