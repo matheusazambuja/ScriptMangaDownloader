@@ -12,11 +12,32 @@ HEADERS = {
     'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 
 
-def request(link):
-    try:
-        return requests.get(link, headers=HEADERS)
-    except requests.exceptions.RequestException as e:
-        print(e)
+def config_chapters(manga_chapters):
+    if manga_chapters.lower() == 'all':
+        return (-1, -1)
+    elif manga_chapters == '' \
+        or len(literal_eval(manga_chapters)) != 2 \
+        or not all(isinstance(item, int)
+                   for item in literal_eval(manga_chapters)):
+        print(help(1))
+        exit(0)
+    else:
+        return literal_eval(manga_chapters)
+
+
+def config_name(manga_name):
+    if manga_name == '':
+        print(help(0))
+        exit(0)
+
+
+def config_path(path):
+    if path == '':
+        print(help(2))
+        if user_input() == 'y':
+            path = dirname(realpath(__file__))
+        else:
+            exit(0)
 
 
 def converting_image(bin_image, manga_dir):
@@ -24,6 +45,15 @@ def converting_image(bin_image, manga_dir):
     img = Image.open(imgBytesIO)
     new_img = img.convert('RGB')
     new_img.save(manga_dir.replace('.webp', '.jpg'), 'jpeg', quality=100)
+
+
+def get_configs():
+    with open('config_download.yaml', 'r') as yaml_file:
+        try:
+            config = yaml.safe_load(yaml_file)
+            return config
+        except yaml.YAMLError as e:
+            print(e)
 
 
 def help(code):
@@ -46,41 +76,17 @@ def help(code):
     return ERRORS_CODE.get(code)
 
 
-def get_configs():
-    with open('config_download.yaml', 'r') as yaml_file:
-        try:
-            config = yaml.safe_load(yaml_file)
-            return config
-        except yaml.YAMLError as e:
-            print(e)
+def request(link):
+    try:
+        return requests.get(link, headers=HEADERS)
+    except requests.exceptions.RequestException as e:
+        print(e)
 
 
-def config_name(manga_name):
-    if manga_name == '':
-        print(help(0))
-        exit(0)
-
-
-def config_chapters(manga_chapters):
-    if manga_chapters.lower() == 'all':
-        return (-1, -1)
-    elif manga_chapters == '' \
-        or len(literal_eval(manga_chapters)) != 2 \
-        or not all(isinstance(item, int)
-                   for item in literal_eval(manga_chapters)):
-        print(help(1))
-        exit(0)
-    else:
-        return literal_eval(manga_chapters)
-
-
-def config_path(path):
-    if path == '':
-        print(help(2))
-        if user_input() == 'y':
-            path = dirname(realpath(__file__))
-        else:
-            exit(0)
+def run_script(name, chapters, path, domain):
+    manga = MangaDownload(name)
+    MangaRight = Manga(manga.name, manga.link, chapters, path)
+    MangaRight.download_chapters()
 
 
 def user_input():
@@ -89,9 +95,3 @@ def user_input():
         if choice.lower() in ('y', 'n'):
             break
     return choice.lower()
-
-
-def run_script(name, chapters, path, domain):
-    manga = MangaDownload(name)
-    MangaRight = Manga(manga.name, manga.link, chapters, path)
-    MangaRight.download_chapters()
