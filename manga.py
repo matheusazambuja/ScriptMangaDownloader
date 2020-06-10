@@ -112,7 +112,7 @@ class Chapter():
         pages = []
         b_html = utils.request(self.link)
         soup = BeautifulSoup(b_html.content, 'html.parser')
-        regex_pages = r"\bsrc='(\w+://[\w.%+-/ ]+)"
+        regex_pages = r"\bsrc='(\w+://[\w.%+-/()]+)"
         for tag in soup.find_all('script'):
             pages = re.findall(regex_pages, str(tag))
             if pages:
@@ -126,6 +126,7 @@ class Chapter():
         if links_pages:
             print('Download started')
             for link in links_pages:
+                # print(link)
                 r = utils.request(link)
                 self.save_page(total_pages_download, r.content)
                 total_pages_download += 1
