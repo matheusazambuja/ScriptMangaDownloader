@@ -1,5 +1,4 @@
 # Usage examples:
-manga_name: one punch man
-manga_chapters: all
+manga_name: boku no hero academia
+manga_chapters: (1,5)
 manga_path: 
-manga_domain: mangahost.site
